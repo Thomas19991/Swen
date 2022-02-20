@@ -47,6 +47,8 @@
 #### Score & Stats    
 * Score zeigt das Ergebnis des letzten Spiels an
 * Stats zeigt die Ergebnisse der vergangenen Spiele
+#### Hours invested
+* ~120h
 ## API Beschreibung
 #### GET
 | ROUTE              | BESCHREIBUNG                       | ATTRIBUTE | RETURN                  | HEADER                                               |
