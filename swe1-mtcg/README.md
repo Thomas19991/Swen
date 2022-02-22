@@ -49,7 +49,6 @@
 * Stats zeigt die Ergebnisse der vergangenen Spiele
 #### Hours invested
 * ~120h
-
 ## API Beschreibung
 #### GET
 | ROUTE              | BESCHREIBUNG                       | ATTRIBUTE | RETURN                  | HEADER                                               |

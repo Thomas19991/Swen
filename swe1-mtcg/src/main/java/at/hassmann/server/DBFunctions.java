@@ -16,7 +16,6 @@ import java.util.Map;
  */
 public class DBFunctions {
     private Connection c;
-    private PreparedStatement ps;
     public DBFunctions() {
         PostgresHelper.con();
     }
@@ -46,20 +45,20 @@ public class DBFunctions {
      * @param username user to proof
      * @return Null if error, else list of id's
      */
-    public ArrayList<String> getAllBattleIdUser(String username){
+    //public ArrayList<String> getAllBattleIdUser(String username){
+        public ArrayList<Integer> getAllBattleIdUser(String username){
         int id;
-        ArrayList<String> battleIds = new ArrayList<>();
+        ArrayList<Integer> battleIds = new ArrayList<>();
         try {
             Connection c = PostgresHelper.con();
             PreparedStatement ps = c.prepareStatement("select id from battle_log where playerone = ? or playertwo = ?;");
             ps.setString(1, username);
             ps.setString(2, username);
             ResultSet rs = ps.executeQuery();
-            //ResultSet rs = stmt.executeQuery("select id from battle_log where playerone = '" + username + "' or playertwo = '" + username + "';");
             while (rs.next()) {
                 id = rs.getInt("id");
                 if (id > 0) {
-                    battleIds.add(id + "");
+                    battleIds.add(id);
                 }else {
                     return null;
                 }
@@ -87,7 +86,6 @@ public class DBFunctions {
             ps.setString(1, username);
             ps.setString(2, username);
             ResultSet rs = ps.executeQuery();
-            //ResultSet rs = stmt.executeQuery("select max(id) from battle_log where playerone = '" + username + "' or playertwo = '" + username + "';");
             while (rs.next()) {
                 id = rs.getInt("max");  //user with highest id
                 if (id > 0) {
@@ -107,19 +105,18 @@ public class DBFunctions {
     }
 
     /**
-     * gets Battellog of a certain battle
+     * gets Battlelog of a certain battle
      * @param battleId Id of the battle
      * @return a map with names of player1 and player2, player1Score and player2Score and log
      */
-    public Map<String, String> getBattleLog(String battleId){
+    public Map<String, String> getBattleLog(int battleId){
         int id;
         String playerone, playertwo, score1, score2, log;
         try {
             Connection c = PostgresHelper.con();
             PreparedStatement ps = c.prepareStatement("select * from battle_log where id = ?;");
-            ps.setString(1, battleId);
+            ps.setInt(1, battleId);
             ResultSet rs = ps.executeQuery();
-            //ResultSet rs = stmt.executeQuery("select * from battle_log where id = " + battleId + ";");
             while (rs.next()) {
                 id = rs.getInt("id");
                 playerone = rs.getString("playerone");
@@ -170,13 +167,11 @@ public class DBFunctions {
                         ps.executeUpdate();
                         ps.close();
                         c.close();
-                        System.out.println("Battle created");
                         return true;
                     } catch (SQLException e) {
                         e.printStackTrace();
                         return false;
                     }
-                    //return PostgresHelper.executeUpdateMessage("insert into battle (usernamecreator, deckcreator) VALUES ('" + usernamecreator + "','" + deckJson + "');", "Battle created");
                 }else {
                     return false;
                 }
@@ -193,24 +188,24 @@ public class DBFunctions {
      * @return null if a error occurs or no free battle is available
      */
     public Battle getOpenBattle(){
-        int battleId;
-        String username;
         try {
-            Connection c = PostgresHelper.con();
-            PreparedStatement ps = c.prepareStatement("select * from battle limit 1;");
-            ResultSet rs = ps.executeQuery();
-            //ResultSet rs = stmt.executeQuery("select * from battle limit 1;");
-            while (rs.next()) {
-                battleId = rs.getInt("battleid");
+            int battleId;
+            String username;
+            Statement st;
+            this.c = PostgresHelper.con();
+            st = this.c.createStatement();
+            ResultSet rs = st.executeQuery("select * from battle limit 1;");
+            while(rs.next()) {
                 username = rs.getString("usernamecreator");
+                battleId = rs.getInt("battleid");
                 User player1 = new DBFunctions().getUser(username);
                 if(player1 != null){
                     ArrayList<String> deckPlayer1Arr = new DBFunctions().getDeck(username);
                     if (deckPlayer1Arr != null){
                         Cards deckPlayer1 = new DBFunctions().getCardsFromIDList(deckPlayer1Arr);
                         if(deckPlayer1 != null){
-                            if(delBattleInvitation(battleId+"")){   //deletes battle id so battle is closed
-                                return new Battle(battleId, player1, deckPlayer1);   //battle init
+                            if(delBattleInvitation(battleId)){   //deletes battle id so battle is closed
+                                return new Battle(battleId, player1, deckPlayer1);   //battle initial
                             }else{
                                 return null;
                             }
@@ -225,7 +220,7 @@ public class DBFunctions {
                 }
             }
             rs.close();
-            ps.close();
+            st.close();
             c.close();
         } catch (SQLException throwables) {
             throwables.printStackTrace();
@@ -239,21 +234,20 @@ public class DBFunctions {
      * @param battleid id to delete
      * @return true if success, else false
      */
-    public boolean delBattleInvitation(String battleid) {
+    //public boolean delBattleInvitation(String battleid) {
+        public boolean delBattleInvitation(int battleid) {
         try {
             Connection c = PostgresHelper.con();
             PreparedStatement ps = c.prepareStatement("delete from battle where battleid = ?;");
-            ps.setString(1, battleid);
+            ps.setInt(1, battleid);
             ps.executeUpdate();
             ps.close();
             c.close();
-            System.out.println("Battle request deleted");
             return true;
         } catch (SQLException e) {
             e.printStackTrace();
             return false;
         }
-        //return PostgresHelper.executeUpdateMessage("delete from battle where battleid = '" + battleid + "';", "Battle request deleted");
     }
 
     /**
@@ -266,15 +260,16 @@ public class DBFunctions {
      * @param log Log of Battle
      * @return true if success, else false
      */
-    public boolean addBattleLog(String id, String playerone, String playertwo, String playeronescore, String playertwoscore, String log) {
+    //public boolean addBattleLog(String id, String playerone, String playertwo, int playeronescore, int playertwoscore, String log) {
+    public boolean addBattleLog(int id, String playerone, String playertwo, int playeronescore, int playertwoscore, String log) {
         try {
             Connection c = PostgresHelper.con();
             PreparedStatement ps = c.prepareStatement("insert into battle_log (id, playerone, playertwo, playeronescore, playertwoscore, log) VALUES (?,?,?,?,?,?);");
-            ps.setString(1, id);
+            ps.setInt(1, id);
             ps.setString(2, playerone);
             ps.setString(3, playertwo);
-            ps.setString(4, playeronescore);
-            ps.setString(5, playertwoscore);
+            ps.setInt(4, playeronescore);
+            ps.setInt(5, playertwoscore);
             ps.setString(6, log);
             ps.executeUpdate();
             ps.close();
@@ -284,7 +279,6 @@ public class DBFunctions {
             e.printStackTrace();
             return false;
         }
-        //return PostgresHelper.executeUpdate("insert into battle_log (id, playerone, playertwo, playeronescore, playertwoscore, log) VALUES ("+id+ ",'" +playerone+ "','" +playertwo+ "','" +playeronescore+ "','" +playertwoscore+ "','" +log+ "');");
     }
 
     /**
@@ -307,7 +301,6 @@ public class DBFunctions {
             e.printStackTrace();
             return false;
         }
-        //return PostgresHelper.executeUpdate("Update user_cards set gesperrt = " + lock + " where name = '" + name + "';");
     }
 
     /**
@@ -322,7 +315,6 @@ public class DBFunctions {
         PreparedStatement ps = c.prepareStatement("select gesperrt from user_cards where name = ?;");
         ps.setString(1, name);
         ResultSet rs = ps.executeQuery();
-        //ResultSet rs = stmt.executeQuery("select gesperrt from user_cards where name = '" + name + "';");
         while (rs.next()) {
             locked = rs.getBoolean("gesperrt");
         }
@@ -350,7 +342,6 @@ public class DBFunctions {
             e.printStackTrace();
             return false;
         }
-        //return PostgresHelper.executeUpdate("delete from trading where id = '" + id + "';");
     }
 
     /**
@@ -363,7 +354,7 @@ public class DBFunctions {
      * @param cardtotrade Card to trade
      * @return True if success, else false
      */
-    public boolean addTradingdeal(String username, String id, double mindamage, String reqcardtype, String reqelement, String cardtotrade) {
+    public boolean addTradingDeal(String username, String id, double mindamage, String reqcardtype, String reqelement, String cardtotrade) {
         try {
             Connection c = PostgresHelper.con();
             PreparedStatement ps = c.prepareStatement("INSERT INTO trading (username, id, cardtotrade, mindamage, reqcardtype, reqelement) VALUES (?,?,?,?,?,?);");
@@ -377,11 +368,11 @@ public class DBFunctions {
             ps.close();
             c.close();
             return true;
-        } catch (SQLException e) {
-            e.printStackTrace();
-            return false;
+        } catch (SQLException ignore) {
+            //e.printStackTrace();
+            System.out.println("Values already exist");
         }
-        //return PostgresHelper.executeUpdate("INSERT INTO public.trading (username, id, cardtotrade, mindamage, reqcardtype, reqelement) VALUES ('" + username + "','" + id + "','" + cardtotrade + "','" + mindamage + "','" + reqcardtype + "','" + reqelement + "');");
+        return false;
     }
 
     /**
@@ -394,7 +385,6 @@ public class DBFunctions {
             Connection c = PostgresHelper.con();
             PreparedStatement ps = c.prepareStatement("select * from trading;");
             ResultSet rs = ps.executeQuery();
-            //ResultSet rs = stmt.executeQuery("select * from trading;");
             while (rs.next()) {
                 String username, id, cardtotrade, reqcardtype, reqelement;
                 int mindamage;
@@ -470,9 +460,6 @@ public class DBFunctions {
                                     e.printStackTrace();
                                     return false;
                                 }
-                                //if(!PostgresHelper.executeUpdateMessage("INSERT INTO public.user_deck (username, cardname) VALUES ('" +username+ "', '" +cardtmp.getName()+ "');", "Card #"+x+" added to Deck")){
-                                 //   return false;
-                                //}
                             }
                             return true;
                         }
@@ -491,17 +478,16 @@ public class DBFunctions {
      * @return null is error
      */
     public ArrayList<String> getDeck(String username){
-        ArrayList<String> cardnamenarray = new ArrayList<>();
+        ArrayList<String> cardNameArray = new ArrayList<>();
         String cardname;
         try {
             Connection c = PostgresHelper.con();
             PreparedStatement ps = c.prepareStatement("select * from user_deck where username = ?;");
             ps.setString(1, username);
             ResultSet rs = ps.executeQuery();
-            //ResultSet rs = stmt.executeQuery("select * from user_deck where username = '" + username + "';");
             while (rs.next()) {
                 cardname = rs.getString("cardname");
-                cardnamenarray.add(cardname);
+                cardNameArray.add(cardname);
             }
             rs.close();
             ps.close();
@@ -510,7 +496,7 @@ public class DBFunctions {
             System.err.println(e.getClass().getName() + ": " + e.getMessage());
             return null;
         }
-        return cardnamenarray;
+        return cardNameArray;
     }
 
     /**
@@ -532,12 +518,10 @@ public class DBFunctions {
             e.printStackTrace();
             return false;
         }
-        //return PostgresHelper.executeUpdateMessage("delete from user_deck where username = '" + username + "';", "User Deck: " + username + ", deleted");
     }
 
     /**
      * Gets random package out of the shop
-     *
      * @param username -> user which the package wants
      * @return the package from the shop, null if error
      */
@@ -547,7 +531,6 @@ public class DBFunctions {
             Connection c = PostgresHelper.con();
             PreparedStatement ps = c.prepareStatement("select \"ID\" as id from package LIMIT 1;");
             ResultSet rs = ps.executeQuery();
-           // ResultSet rs = stmt.executeQuery("select \"ID\" as id from package LIMIT 1;");
             while (rs.next()) {
                 id = rs.getString("id");
             }
@@ -566,7 +549,6 @@ public class DBFunctions {
             PreparedStatement ps = c.prepareStatement("select  i as zeilennummer,  package.\"ID\" as id, package.name as packagename, c.name as cardname, c.DAMAGE as damage, c.ELEMENTTYP as elementtyp, c.CARDTYPE as cardtype from package join card c on c.name = package.name where \"ID\" = ?;");
             ps.setString(1, id);
             ResultSet rs = ps.executeQuery();
-            //ResultSet rs = stmt.executeQuery("select  i as zeilennummer,  package.\"ID\" as id, package.name as packagename, c.name as cardname, c.DAMAGE as damage, c.ELEMENTTYP as elementtyp, c.CARDTYPE as cardtype from package join card c on c.name = package.name where \"ID\" = '" + id + "';");
             while (rs.next()) {
                 id = rs.getString("id");
                 packagename = rs.getString("packagename");
@@ -591,7 +573,7 @@ public class DBFunctions {
             return null;
         }
         if (cards.getCards().size() != 0) {
-            return new at.hassmann.objects.Package(cards, packagename, 5);
+            return new Package(cards, packagename, 5);
         } else {
             return null;
         }
@@ -617,7 +599,6 @@ public class DBFunctions {
             e.printStackTrace();
             return false;
         }
-        //return PostgresHelper.executeUpdate("delete from user_cards where username = '" +username+ "' and name = '" +cardname+ "';");
     }
 
     /**
@@ -633,7 +614,6 @@ public class DBFunctions {
             ps.setString(1, username);
             ps.setString(2, cardName);
             ps.setBoolean(3, false);
-            //String sql = "INSERT INTO public.user_cards (username, name, gesperrt) VALUES ( '" + username + "','" + cardName + "', 'false');";
             ps.executeUpdate();
             ps.close();
             c.close();
@@ -646,7 +626,6 @@ public class DBFunctions {
 
     /**
      * Deletes package by name
-     *
      * @param name Name of package which is deleted
      * @return True if success, else false
      */
@@ -663,12 +642,10 @@ public class DBFunctions {
             System.err.println(e.getClass().getName() + ": " + e.getMessage());
             return false;
         }
-       // return PostgresHelper.executeUpdateMessage("DELETE FROM package WHERE \"ID\" = '" + name + "';", "Package deleted successfully");
     }
 
     /**
      * Set coins
-     *
      * @param coins number to be set
      * @param username Username where the coins are updated
      * @return True if success, else false
@@ -688,7 +665,6 @@ public class DBFunctions {
             System.err.println(e.getClass().getName() + ": " + e.getMessage());
             return false;
         }
-         //return PostgresHelper.executeUpdateMessage("UPDATE users SET coins = " + coins + " WHERE username = '" + username + "';", "Coins Updated");
     }
 
     /**
@@ -728,7 +704,6 @@ public class DBFunctions {
             PreparedStatement ps = c.prepareStatement("select count(*) from card where name = ?;");
             ps.setString(1, name);
             ResultSet rs = ps.executeQuery();
-            //ResultSet rs = stmt.executeQuery("select count(*) from card where name = '" + name + "';");
             while (rs.next()) {
                 count = rs.getInt("count");
             }
@@ -744,7 +719,6 @@ public class DBFunctions {
 
     /**
      * Puts a card into db
-     *
      * @param card which is added
      * @return true if success, false if error
      */
@@ -765,7 +739,6 @@ public class DBFunctions {
             System.err.println(e.getClass().getName() + ": " + e.getMessage());
             return false;
         }
-        //return PostgresHelper.executeUpdateMessage("insert into card (NAME, DAMAGE, ELEMENTTYP, CARDTYPE) values ('" + card.getName() + "','" + card.getDamage() + "','" + card.getElementTyp().name() + "','" + card.getCardType().name() + "')", "Card added");
     }
 
     /**
@@ -778,7 +751,6 @@ public class DBFunctions {
             Connection c = PostgresHelper.con();
             PreparedStatement ps = c.prepareStatement("select max(\"ID\") from package;");
             ResultSet rs = ps.executeQuery();
-            //ResultSet rs = stmt.executeQuery("select max(\"ID\") from package;");
             while (rs.next()) {
                 id = rs.getString("max");
             }
@@ -800,7 +772,7 @@ public class DBFunctions {
      * @param pack - Pack which should be added
      * @return true if success, false if error
      */
-    public boolean addPackage(at.hassmann.objects.Package pack) {
+    public boolean addPackage(Package pack) {
         try {
             for (Card ca : pack.getCards()) {
                 if (!cardExists(ca.getName())) {
@@ -817,19 +789,15 @@ public class DBFunctions {
                 c.close();
                 System.out.println("Package added");
             }
-            //if(!PostgresHelper.executeUpdateMessage("INSERT INTO package (\"ID\", \"name\") values ('" + pack.getName() + "','" + ca.getName() + "');", "Card zu Package hinzugefügt")){
-            //    return false;
-            //}
         } catch (SQLException ignored) {
             System.out.println("Error add package");
-           // return false;
+            return false;
         }
         return true;
     }
 
     /**
      * puts a user into the db
-     *
      * @param username Username of User
      * @param password Passwort of User
      * @param nachname nachname of User
@@ -855,7 +823,6 @@ public class DBFunctions {
             return false;
         }
         return true;
-        //return PostgresHelper.executeUpdateMessage("INSERT INTO users (username, nachname, password, bio, image) values ('" + username + "','" + nachname + "','" + password + "','" + bio + "','" + image + "')", "User added");
     }
 
     /**
@@ -882,24 +849,21 @@ public class DBFunctions {
             e.printStackTrace();
             return false;
         }
-        //return PostgresHelper.executeUpdate("UPDATE public.users SET nachname = '" + name+ "', bio = '" +bio+ "', image = '" +image+ "' WHERE username LIKE '" +username+ "' ESCAPE '#'");
     }
 
     /**
      * search the User with the Username
      * gives user object back
-     *
      * @param uname username to see
      * @return user as user object, null if error
      */
     public User getUser(String uname){
         String username = "", password = "", bio="", image="";
         try {
-            Connection c = this.c = PostgresHelper.con();
+            Connection c = PostgresHelper.con();
             PreparedStatement ps = c.prepareStatement("SELECT * FROM users where username = ?;");
             ps.setString(1, uname);
             ResultSet rs = ps.executeQuery();
-            //ResultSet rs = stmt.executeQuery("SELECT * FROM users where username = '" + uname + "';");
             while (rs.next()) {
                 username = rs.getString("username");
                 password = rs.getString("password");
@@ -928,7 +892,6 @@ public class DBFunctions {
             PreparedStatement ps = c.prepareStatement("select * from card where NAME = ?;");
             ps.setString(1, id);
             ResultSet rs = ps.executeQuery();
-            //ResultSet rs = stmt.executeQuery("select * from card where NAME =  '" + id + "';");
             while (rs.next()) {
                 int damage =rs.getInt("damage");
                 String elementtyp =rs.getString("elementtyp");
@@ -958,7 +921,6 @@ public class DBFunctions {
                 PreparedStatement ps = c.prepareStatement("select * from card where NAME = ?;");
                 ps.setString(1, st);
                 ResultSet rs = ps.executeQuery();
-                //ResultSet rs = stmt.executeQuery("select * from card where NAME =  '" + st + "';");
                 while (rs.next()) {
                     int damage = rs.getInt("damage");
                     String elementtyp = rs.getString("elementtyp");
@@ -989,7 +951,6 @@ public class DBFunctions {
             PreparedStatement ps = c.prepareStatement("select * from user_cards where username = ?;");
             ps.setString(1, username);
             ResultSet rs = ps.executeQuery();
-            //ResultSet rs = stmt.executeQuery("select * from user_cards where username = '" + username + "';");
             while (rs.next()) {
                 cardname = rs.getString("name");
                 cardnamenarray.add(cardname);

@@ -128,7 +128,7 @@ public class Response {
             if (username != null && !username.isEmpty()){
                 int lastBallteId = new DBFunctions().getLastBattleIdUser(username);
                 if (lastBallteId > -1){
-                    Map<String, String> map = new DBFunctions().getBattleLog(lastBallteId + "");
+                    Map<String, String> map = new DBFunctions().getBattleLog(lastBallteId);
                     if(map != null && !map.isEmpty()){
                         sendResponse("BATTLE #" + map.get("id") + "\nSCORE\n" + map.get("playerone") + "(#Player1) |vs| " + map.get("playertwo") + "(#Player2) \n" + map.get("playeronescore") + "(#Player1) |vs| " + map.get("playertwoscore") + "(#Player2) \nGame LOG:\n" + ResponseHelper.logLineBreak(map.get("log")), "200");
                     }else {
@@ -144,11 +144,11 @@ public class Response {
         }else if(this.url.startsWith("/stats")) {
             String username = this.authUserString;
             if (username != null && !username.isEmpty()) {
-                ArrayList<String> battleIds = new DBFunctions().getAllBattleIdUser(username);
+                ArrayList<Integer> battleIds = new DBFunctions().getAllBattleIdUser(username);
                 if (battleIds != null && !battleIds.isEmpty()){
                     StringBuilder resString = new StringBuilder();
-                    for(String i : battleIds){
-                        Map<String, String> map = new DBFunctions().getBattleLog(i + "");
+                    for(int i : battleIds){
+                        Map<String, String> map = new DBFunctions().getBattleLog(i);
                         if(map != null && !map.isEmpty()){
                             resString = new StringBuilder("BATTLE #" + map.get("id") + "\nSCORE\n" + map.get("playerone") + "(#Player1) |vs| " + map.get("playertwo") + "(#Player2) \n" + map.get("playeronescore") + "(#Player1) |vs| " + map.get("playertwoscore") + "(#Player2) \nGame LOG:\n");
                             resString.append(ResponseHelper.logLineBreak(map.get("log")));     //loglinebreak in response helper
@@ -322,28 +322,28 @@ public class Response {
                                 if (deckCards.contains(cardtotrade)) {
                                     new DBFunctions().delDeck(username);
                                 }
-                                if (new DBFunctions().addTradingdeal(tradingDeal.getUsername(), tradingDeal.getId(), tradingDeal.getRequiredMinDamage(), tradingDeal.getRequiredCardType().name(), tradingDeal.getRequiredElementType().name(), tradingDeal.getCardToTrade().getName())) {
+                                if (new DBFunctions().addTradingDeal(tradingDeal.getUsername(), tradingDeal.getId(), tradingDeal.getRequiredMinDamage(), tradingDeal.getRequiredCardType().name(), tradingDeal.getRequiredElementType().name(), tradingDeal.getCardToTrade().getName())) {
                                     if (new DBFunctions().updateCardLock(tradingDeal.getCardToTrade().getName(), true)) {
                                         sendResponse(Objects.requireNonNull(JsonHelper.objToJson(tradingDeal)), "201");
                                     } else {
-                                        sendResponse("", "500");
+                                        sendResponse("Error1", "500");
                                     }
                                 } else {
-                                    sendResponse("", "500");
+                                    sendResponse("Already exists", "500");
                                 }
                             } else {
-                                sendResponse("", "500");
+                                sendResponse("Error2", "500");
                             }
                             sendResponse(Objects.requireNonNull(tradingJson), "201");
                         } else {
-                            sendResponse("", "500");
+                            sendResponse("Error3", "500");
                         }
                     } else {
-                        sendResponse("", "500");
+                        sendResponse("Error4", "500");
                     }
                 }
             }
-        }else if (this.url.startsWith("/battle")) {
+        }else if (this.url.startsWith("/battles")) {
             if(login()){
                 String username = this.authUserString;
                 if (username != null && !username.isEmpty()) {
@@ -355,18 +355,18 @@ public class Response {
                             if (openBattle == null) {
                                 //Creator player Mode
                                 if(new DBFunctions().addBattle(username)){
-                                    sendResponse("Du bist: ->PLAYER 1\nBattle Einladung wurde erstellt von: " + username + "(->PLAYER1) \nSobald ein 2. Spieler dem Battle beitritt, kann das Ergebnis mit /score abgefragt werden.","200");
+                                    sendResponse("Du bist: ->PLAYER 1\nBattle Einladung wurde erstellt von: " + username + " (->PLAYER1) \nSobald ein 2. Spieler dem Battle beitritt, kann das Ergebnis mit /score abgefragt werden.","200");
                                 }else {
                                     sendResponse("Something wrong", "500");
                                 }
-                            } else {
+                            }else{
                                 User player2 = new DBFunctions().getUser(username);  //Join game player
                                 if(player2 != null){
                                     openBattle.setPlayer2(player2);
                                     openBattle.setDeckPlayer2(deck);
-                                    if(new DBFunctions().delBattleInvitation(openBattle.getId() + "")) {
+                                    if(new DBFunctions().delBattleInvitation(openBattle.getId())) {
                                         if (openBattle.doFight()){
-                                            if (new DBFunctions().addBattleLog(openBattle.getId() + "", openBattle.getPlayer1().getName(), openBattle.getPlayer2().getName(), openBattle.getScorePlayer1() + "", openBattle.getScorePlayer2() + "", openBattle.getLog().toString())) {
+                                            if (new DBFunctions().addBattleLog(openBattle.getId(), openBattle.getPlayer1().getName(), openBattle.getPlayer2().getName(), openBattle.getScorePlayer1(), openBattle.getScorePlayer2(), openBattle.getLog().toString())) {
                                                 if (new DBFunctions().delDeck(openBattle.getPlayer1().getCredentials().getUsername()) && new DBFunctions().delDeck(openBattle.getPlayer2().getCredentials().getUsername())) {
                                                     //DEL OLD DECK CARDS
                                                     ArrayList<String> oldDeck1 = new ArrayList<>();
@@ -385,7 +385,7 @@ public class Response {
                                                     if (player1cards.getCards() != null && !player1cards.getCards().isEmpty()) {
                                                         for (String ca : oldDeck1) {
                                                             if (!new DBFunctions().delUserCard(openBattle.getPlayer1().getCredentials().getUsername(), ca)) {
-                                                                sendResponse("Error Deleting User card1: " + ca, "500");
+                                                                sendResponse("Error deleting User card1: " + ca, "500");
                                                             }
                                                         }
                                                     }
@@ -396,7 +396,7 @@ public class Response {
                                                     if (player2cards.getCards() != null && !player2cards.getCards().isEmpty()) {
                                                         for (String ca : oldDeck2) {
                                                             if (!new DBFunctions().delUserCard(openBattle.getPlayer2().getCredentials().getUsername(), ca)) {
-                                                                sendResponse("Error Deleting User card2: " + ca, "500");
+                                                                sendResponse("Error deleting User card2: " + ca, "500");
                                                             }
                                                         }
                                                     }
@@ -413,32 +413,32 @@ public class Response {
                                                     }
                                                     sendResponse("Du bist: #PLAYER 2\nBattle --> " + openBattle.getPlayer1().getName() + "(#PLAYER1) |vs| " + openBattle.getPlayer2().getName() + "(#PLAYER2)\nErgebnisse unter /score abrufbar", "200");
                                                 }
-                                            } else {
+                                            }else{
                                                 sendResponse("Battle Log konnte nicht geschrieben werden", "500"); //ERROR
                                             }
-                                        }else {
+                                        }else{
                                             sendResponse("Battle konnte nicht durchgeführt werden", "500");
                                         }
                                     }else{
-                                        sendResponse("Battle Einladung konnte nicht akzeptiert werden", "500"); //ERROR
+                                        sendResponse("Battle Einladung nicht akzeptiert", "500"); //ERROR
                                     }
                                 }else{
                                     sendResponse("GET User error", "500"); //ERROR
                                 }
                             }
-                        }else {
+                        }else{
                             sendResponse("Nur "+ Objects.requireNonNull(deck).getCards().size()+" von 4 Karten im Deck. \nMach zuerst POST /deck [ID, ID, ID, ID] um dein Deck korrekt zu befüllen","424");
                         }
-                    }else {
+                    }else{
                         sendResponse("Deck ist nicht gesetzt","424");
                     }
-                }else {
-                    sendResponse("", "500");
+                }else{
+                    sendResponse("User error", "500");
                 }
-            }else {
+            }else{
                 sendResponse("Login Error", "401");
             }
-        } else{
+        }else{
             sendResponse(this.url + " not found!", "404");
         }
 
@@ -557,7 +557,6 @@ public class Response {
                     e.printStackTrace();
                     sendResponse("DB drop error", "500");
                 }
-                // if(PostgresHelper.executeUpdate("drop table user_deck; drop table trading; drop table battle; drop table battle_log; drop table user_cards; drop table package; drop table card; drop table users;")) {
                 if (!new DBFunctions().initial()) {
                     sendResponse("DB init failed", "500");
                 } else {

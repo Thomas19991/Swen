@@ -32,10 +32,8 @@ public class Main {
             serverSocket = new ServerSocket(port);
             while (true){
                 this.socket = serverSocket.accept();
-                new Thread(() -> {
-                    requestResponding();
-                    //System.out.println(Thread.currentThread());
-                }).start();
+                Thread t1 = new Thread(() -> requestResponding());
+                t1.start();
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -53,6 +51,7 @@ public class Main {
             this.socket.close();
             System.out.println("Socket wird geschlossen!");
         } catch (IOException e){
+            System.out.println("Socket error");
             e.printStackTrace();
         }
     }

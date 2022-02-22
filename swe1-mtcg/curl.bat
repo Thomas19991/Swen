@@ -218,6 +218,7 @@ echo 18) Stats
 echo kienboec
 curl -X GET http://localhost:10001/stats --header "Authorization: Basic kienboec-mtcgToken"
 echo.
+echo sleep 10000
 echo altenhof
 curl -X GET http://localhost:10001/stats --header "Authorization: Basic altenhof-mtcgToken"
 echo.

@@ -35,9 +35,9 @@ public class Request {
         String request = rqBuilder.toString();
         String[] requestsLines = request.split("\r\n");
         String[] requestLine = requestsLines[0].split(" ");
-        System.out.println(requestLine[0]);  //zb POST
-        System.out.println(requestLine[1]);   //zb /sessions
-        System.out.println(requestLine[2]);   //zb HTTP/1.1
+        //System.out.println(requestLine[0]);  //zb POST
+        //System.out.println(requestLine[1]);   //zb /sessions
+        //System.out.println(requestLine[2]);   //zb HTTP/1.1
         String method = requestLine[0];
         String path = requestLine[1];
         String version = requestLine[2];
@@ -54,12 +54,12 @@ public class Request {
 
         List<String> headers = new ArrayList<>(Arrays.asList(requestsLines).subList(2, requestsLines.length));
         //System.out.println("accessLog:");
-        String accessLog = String.format("Client %s, method %s, path %s, version %s, host %s, headers %s", socket, method, path, version, host, headers);
-        System.out.println(accessLog);
+        //String accessLog = String.format("Client %s, method %s, path %s, version %s, host %s, headers %s", socket, method, path, version, host, headers);
+        //System.out.println(accessLog);
         String auth = "Authorization: Basic";
         if(headers.toString().contains(auth)) {
             int authIndex = headers.toString().indexOf(auth);
-            String authUserString = headers.toString().substring(authIndex + 21);   //extract usernsame
+            String authUserString = headers.toString().substring(authIndex + 21);   //extract username
             int authIndexEnd = authUserString.indexOf('-');
             if(authIndexEnd == -1){
                 authIndexEnd = authUserString.indexOf(']');
