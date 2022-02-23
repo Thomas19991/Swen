@@ -63,7 +63,7 @@
 #### POST
 | ROUTE                  | BESCHREIBUNG              | ATTRIBUTE                            | RETURN              | HEADER                                               |
 |------------------------|---------------------------|--------------------------------------|---------------------|------------------------------------------------------|
-| /users                 | create   user             | Username, Password                   | User Object         | /                                                    |
+| /users                 | create user               | Username, Password                   | User Object         | /                                                    |
 | /sessions              | login user                | Username, Password                   | login true/false    | /                                                    |
 | /packages              | create package            | [ID, Name, Damage]x5                 | Package Object      | --header   "Authorization: Basic admin-mtcgToken"    |
 | /transactions/packages | acquire packages kienboec | /                                    | Package Object      | --header   "Authorization: Basic kienboec-mtcgToken" |
@@ -78,5 +78,5 @@
 #### DELETE
 | ROUTE               | BESCHREIBUNG        | ATTRIBUTE | RETURN | HEADER                                               |
 |---------------------|---------------------|-----------|--------|------------------------------------------------------|
-| /tradings/{TradeID} | delete trading deal | /         | /      | --header "Authorization:   Basic kienboec-mtcgToken" |
+| /tradings/{TradeID} | delete trading deal | /         | /      | --header "Authorization: Basic kienboec-mtcgToken" |
 | /db/all             | Reset DB + Recreate | /         | /      |--header   "Authorization: Basic admin-mtcgToken"     |
